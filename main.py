@@ -1,15 +1,16 @@
 from telegram.ext import ApplicationBuilder, MessageHandler, filters, CallbackContext
 from telegram import Update
+import os
 import schedule
 import time
 import threading
 
-TOKEN = '7473265259:AAFnIVKFpAtxWxdJAKzWaQoM79X5IgAo_cw'  # Remplacez avec votre vrai token
+# Obtenir le token du bot depuis les variables d'environnement
+TOKEN = os.getenv('TOKEN', 'YOUR_TOKEN')
 TARGET_USER_ID = 6812654722  # Remplacez avec l'ID utilisateur ciblé
 
 # Dictionnaire pour stocker l'état de la conversation par utilisateur
 user_states = {}
-
 
 async def respond_to_user(update: Update, context: CallbackContext) -> None:
     if update.message.from_user.id == TARGET_USER_ID:
@@ -31,18 +32,15 @@ async def respond_to_user(update: Update, context: CallbackContext) -> None:
             await update.message.reply_text("Bonjour! Veux-tu discuter? (oui/non)")
             user_states[user_id] = 'question_asked'
 
-
 def reset_user_state():
     global user_states
     user_states = {}
     print("État utilisateur réinitialisé")
 
-
 def run_schedule():
     while True:
         schedule.run_pending()
         time.sleep(1)
-
 
 def main() -> None:
     print("Démarrage du bot...")
@@ -59,7 +57,6 @@ def main() -> None:
         application.run_polling()
     except Exception as e:
         print(f"Erreur rencontrée lors de l'exécution du bot : {e}")
-
 
 if __name__ == '__main__':
     main()
