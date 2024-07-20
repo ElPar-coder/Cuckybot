@@ -1,24 +1,29 @@
+from flask import Flask
+from threading import Thread
 from telegram.ext import ApplicationBuilder, MessageHandler, filters, CallbackContext
 from telegram import Update
 import os
 import schedule
 import time
-import threading
 
-# Obtenir le token du bot depuis les variables d'environnement
-TOKEN = os.getenv('TOKEN', 'YOUR_TOKEN')
-TARGET_USER_ID = 6812654722  # Remplacez avec l'ID utilisateur ciblé
+app = Flask(__name__)
 
-# Dictionnaire pour stocker l'état de la conversation par utilisateur
-user_states = {}
+@app.route('/')
+def index():
+    return "Bot is running"
+
+def run_flask():
+    app.run(host='0.0.0.0', port=8080)
 
 async def respond_to_user(update: Update, context: CallbackContext) -> None:
+    TARGET_USER_ID = 6812654722
+    user_states = {}
+
     if update.message.from_user.id == TARGET_USER_ID:
         user_id = update.message.from_user.id
 
-        # Vérifier si l'utilisateur a déjà répondu oui ou non
         if user_id in user_states and user_states[user_id] == 'answered':
-            return  # Ne rien faire si l'utilisateur a déjà répondu
+            return
 
         message_text = update.message.text.lower()
 
@@ -32,31 +37,18 @@ async def respond_to_user(update: Update, context: CallbackContext) -> None:
             await update.message.reply_text("Bonjour! Veux-tu discuter? (oui/non)")
             user_states[user_id] = 'question_asked'
 
-def reset_user_state():
-    global user_states
-    user_states = {}
-    print("État utilisateur réinitialisé")
+def main() -> None:
+    TOKEN = os.getenv('TOKEN', 'YOUR_TOKEN')
+    application = ApplicationBuilder().token(TOKEN).build()
+    application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), respond_to_user))
 
-def run_schedule():
+    schedule.every().day.at("00:00").do(lambda: user_states.clear())
     while True:
         schedule.run_pending()
         time.sleep(1)
 
-def main() -> None:
-    print("Démarrage du bot...")
-
-    application = ApplicationBuilder().token(TOKEN).build()
-
-    application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), respond_to_user))
-
-    # Planifier la réinitialisation quotidienne
-    schedule.every().day.at("00:00").do(reset_user_state)
-    threading.Thread(target=run_schedule, daemon=True).start()
-
-    try:
-        application.run_polling()
-    except Exception as e:
-        print(f"Erreur rencontrée lors de l'exécution du bot : {e}")
+    application.run_polling()
 
 if __name__ == '__main__':
+    Thread(target=run_flask).start()
     main()
